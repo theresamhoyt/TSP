@@ -38,26 +38,35 @@ public class TSP
 	// this returns:
 	//   the length of the path that it found until it got stuck
 	//   it marks the vertices and edges in the graph that are on the path	
-	public static int solveTSP(Graph g) 
-	{	
+	public static int solveTSP(Graph g){
+		
 		// sort each vertex's edges shortest first
 		g.sortVertexEdgeLists(new Graph.CompareEdgesSmallestFirst());
 		
 		// just start at first vertex
 		Vertex v = g.vertexIterator().next();
+		Vertex root = v;
 		g.clear();  // clear all marks and values
+		int edgeCountRemaining = g.numVertices();
 		
 		// start building a path, mark vertices so don't revisit them
 		int length = 0;
 		v.setMark(1);
-		boolean stuck;
-		do {  // build path until stuck
+		boolean stuck = false;
+		
+		while (!stuck){  // build path until stuck
+			
 			Iterator<Edge> itr = v.edgeIterator();
 			stuck = true;    // set to false if it find a good edge
+			
 			while (itr.hasNext()) {
+				
 				Edge e = itr.next();
 				Vertex newv = e.getOppositeVertexOf(v);
+
+				
 				if (newv.getMark() == 0) { // found an unmarked vertex
+					edgeCountRemaining--;
 					e.setMark(1);
 					newv.setMark(1);
 					length += e.getWeight();
@@ -65,12 +74,23 @@ public class TSP
 					stuck = false;
 					break;  // search form this new vertex in outer loop
 				}
+			
+				
+				if(edgeCountRemaining==1 && newv == root){
+					e.setMark(1);
+					length += e.getWeight();
+					edgeCountRemaining--;
+				}
+				
 			}
 			
 			TSPtester.show(g); // this will animate the algorithm at each step 
-		} while (!stuck);
+		} 
 			
 		return length;
 	}
+	
+
 }
+
 
