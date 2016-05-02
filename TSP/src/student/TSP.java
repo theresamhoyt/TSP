@@ -33,64 +33,114 @@ import tsp.TSPtester;
 
 public class TSP
 {
-	// simple example routine that just repeatedly finds the first valid
-	// edge until it fails
-	// this returns:
-	//   the length of the path that it found until it got stuck
-	//   it marks the vertices and edges in the graph that are on the path	
-	public static int solveTSP(Graph g){
-		
+	private static Graph graph;
+	private static Vertex root;
+	private static int bound = 1;
+
+	public static int solveTSP(Graph g) 
+	{	
 		// sort each vertex's edges shortest first
 		g.sortVertexEdgeLists(new Graph.CompareEdgesSmallestFirst());
 		
-		// just start at first vertex
-		Vertex v = g.vertexIterator().next();
-		Vertex root = v;
-		g.clear();  // clear all marks and values
-		int edgeCountRemaining = g.numVertices();
+		int result = 0;
+		while((result = solveTSPimp(g)) == 0){
+			bound++;
+		}
+		return result;
+	}
+	private static boolean complete(VertexAndPath vp){
+		if(vp.vertexCount == graph.numVertices() && graph.findEdge(vp.vertex, root) != null){
+			return true;
+		}
+		return false;
+	}
+	private static int markPathAndComputeLength(VertexAndPath vp){
+		graph.clearMarks();
+		Edge lastEdge = graph.findEdge(vp.vertex, root);
+		lastEdge.setMark(1);
 		
-		// start building a path, mark vertices so don't revisit them
-		int length = 0;
-		v.setMark(1);
-		boolean stuck = false;
-		
-		while (!stuck){  // build path until stuck
+		int length = lastEdge.getWeight();
+		VertexAndPath curr = vp;
+		while(curr.parent != null){
+			Edge currEdge = graph.findEdge(curr.vertex, curr.parent.vertex);
+			length = length + currEdge.getWeight();
+			currEdge.setMark(1);
 			
-			Iterator<Edge> itr = v.edgeIterator();
-			stuck = true;    // set to false if it find a good edge
-			
-			while (itr.hasNext()) {
-				
-				Edge e = itr.next();
-				Vertex newv = e.getOppositeVertexOf(v);
-
-				
-				if (newv.getMark() == 0) { // found an unmarked vertex
-					edgeCountRemaining--;
-					e.setMark(1);
-					newv.setMark(1);
-					length += e.getWeight();
-					v = newv;
-					stuck = false;
-					break;  // search form this new vertex in outer loop
-				}
-			
-				
-				if(edgeCountRemaining==1 && newv == root){
-					e.setMark(1);
-					length += e.getWeight();
-					edgeCountRemaining--;
-				}
-				
-			}
-			
-			TSPtester.show(g); // this will animate the algorithm at each step 
-		} 
-			
+			Vertex one = currEdge.getV1();
+			Vertex two = currEdge.getV2();
+			one.setMark(1);
+			two.setMark(1);
+			curr = curr.parent;
+		}
 		return length;
 	}
-	
 
+	
+	public static int solveTSPimp(Graph g){
+		graph = g;
+				
+		// just start at first vertex
+		Vertex v = g.vertexIterator().next();
+		root = v;
+		g.clear();  // clear all marks and values
+		
+		ArrayDeque<VertexAndPath> vertexQ = new ArrayDeque<VertexAndPath>();	
+		VertexAndPath vp = new VertexAndPath();
+		
+		vp.vertex = v;
+		vertexQ.add(vp);
+
+		do {  
+			
+			vp = vertexQ.remove();
+			
+			if(complete(vp)){
+				return markPathAndComputeLength(vp);
+			
+			}
+			Iterator<Edge> vItr = vp.vertex.edgeIterator();
+			int currCount = 0;
+			while(vItr.hasNext() && currCount < bound){
+				Edge e = vItr.next();
+				if(!vp.isVisited(e.getOppositeVertexOf(vp.vertex))){
+					VertexAndPath newVP = new VertexAndPath();
+					newVP.vertex = e.getOppositeVertexOf(vp.vertex);
+					newVP.parent = vp;
+					newVP.vertexCount = vp.vertexCount + 1;
+					vertexQ.add(newVP);
+				}
+				currCount++;
+			}
+		} while(!vertexQ.isEmpty());
+		
+		return 0;	
+
+	}
+
+}
+class VertexAndPath{
+	public Vertex vertex;
+	public VertexAndPath parent;
+	public int vertexCount = 1;
+
+	
+	public boolean isVisited(Vertex v){
+
+		if(v.getId() == vertex.getId()){
+			return true;
+		}
+		if(parent == null){
+			return false;
+		}
+		VertexAndPath currVertex = parent;
+		while(currVertex != null){
+			if(currVertex.vertex.getId() == v.getId()){
+				return true;
+			}
+			currVertex = currVertex.parent;
+		}
+		return false;
+	}
 }
 
 
